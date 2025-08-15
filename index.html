@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Power Outage Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-white">
+  <header class="w-full bg-orange-600 text-black py-6 shadow">
+    <div class="max-w-5xl mx-auto text-center">
+      <h1 class="text-2xl md:text-3xl font-bold">ระบบสร้างและแก้ไขไฟล์เสียงไฟฟ้าดับ</h1>
+      <p class="text-sm md:text-base mt-1 tracking-wide">POWER OUTAGE ANNOUNCEMENT MANAGEMENT</p>
+    </div>
+  </header>
+  <section class="bg-gray-100 p-8">
+  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow text-gray-900">
+    <h1 class="text-2xl font-bold mb-6">ประกาศแจ้งเตือนไฟฟ้าดับ</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <div class="mb-4">
+          <label for="province1" class="block font-semibold mb-2">กรุงเทพมหานคร</label>
+          <textarea id="province1" rows="5" class="w-full p-2 border border-gray-300 rounded">พื้นที่ กรุงเทพมหานคร  
+ในวันพฤหัสบดีที่ 15 สิงหาคม พุทธศักราช 2568,  
+ตั้งแต่เวลา 8 นาฬิกา 30 นาที ถึง 14 นาฬิกา 30 นาที,  
+จะมีการดับกระแสไฟฟ้าชั่วคราวในหลายจุด ดังนี้.  
+
+จุดที่หนึ่ง, ถนนเพชรเกษม  
+ซอยพฤกษาวิลล์ 34 (ซอยเพชรเกษม 110)
+
+จุดที่สอง, ถนนพุทธมณฑลสาย 3  
+ซอยพุทธมณฑลสาย 3 แยก 16/3
+
+จุดที่สาม, ถนนไทยรามัญ  
+ซอยหมู่บ้าน KC. คลัสเตอร์ (ดับทั้งหมู่บ้าน)
+
+และในวันศุกร์ที่ 16 สิงหาคม พุทธศักราช 2568,  
+ตั้งแต่เวลา 8 นาฬิกา 30 นาที ถึง 15 นาฬิกา 30 นาที,  
+จะมีการดับกระแสไฟฟ้าเพิ่มเติมบริเวณถนนอนามัยงามเจริญ ดังนี้.  
+
+ตั้งแต่ซอยอนามัยงามเจริญ 5 (หมู่บ้านสินทวี),  
+ซอยพระรามที่ 2 ซอย 43 แยก 26, 22, 20, และ 19,  
+กองบังคับการตำรวจนครบาล 9 อาคาร 1 และ 5,  
+หมู่บ้านสินทวีโครงการ 8 ถึง ซอยอนามัยงามเจริญ 7,  
+หมู่บ้านสินทวีงามเจริญ (ดับตลอด)
+          </textarea>
+          <div class="mt-2 flex gap-2">
+            <button onclick="playAudio('BKK','TH')" class="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700">ฟังเสียง</button>
+            <button class="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">แก้ไข</button>
+          </div>
+          <audio id="audio-BKK-TH" src="BKK_outage_TH.mp3"></audio>
+        </div>
+      </div>
+      <div>
+        <div class="mb-4">
+          <label for="province1-en" class="block font-semibold mb-2">BANGKOK</label>
+          <textarea id="province1-en" rows="4" class="w-full p-2 border border-gray-300 rounded">Bangkok Area  
+On Thursday, August 15, 2025, from 8:30 AM to 2:30 PM,  
+a temporary power outage will occur in the following locations:
+
+1. Phetkasem Road, Soi Pruksa Ville 34 (Soi Phetkasem 110)  
+2. Phutthamonthon Sai 3 Road, Soi 16/3  
+3. Thai Ramat Road, KC Cluster Village (Full outage)
+
+And on Friday, August 16, 2025, from 8:30 AM to 3:30 PM,  
+additional outages will occur on Anamai Ngamcharoen Road, including:
+
+Soi Anamai Ngamcharoen 5 (Baan Sintavee),  
+Soi Rama 2 - Soi 43, alley 26, 22, 20, and 19,  
+Metropolitan Police Division 9, Buildings 1 and 5,  
+Sintavee Village Project 8 to Soi Anamai Ngamcharoen 7,  
+Sintavee Ngamcharoen Village (Full outage)
+          </textarea>
+          <div class="mt-2 flex gap-2">
+            <button onclick="playAudio('BKK','EN')" class="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700">ฟังเสียง</button>
+            <button class="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">แก้ไข</button>
+          </div>
+          <audio id="audio-BKK-EN" src="BKK_outage_EN.mp3"></audio>
+        </div>
+      </div>
+      <div>
+        <div class="mb-4">
+          <label for="province2" class="block font-semibold mb-2">นนทบุรี</label>
+          <textarea id="province2" rows="5" class="w-full p-2 border border-gray-300 rounded">พื้นที่ จังหวัดนนทบุรี  
+ในวันพุธที่ 21 สิงหาคม พุทธศักราช 2568,  
+ตั้งแต่เวลา 8 นาฬิกา 30 นาที ถึง 12 นาฬิกา,  
+จะมีการดับกระแสไฟฟ้าชั่วคราวในหลายจุด ดังนี้.  
+
+จุดที่หนึ่ง, ถนนเลี่ยงเมืองนนทบุรี  
+ตั้งแต่ซอยเลี่ยงเมืองนนทบุรี ซอย 10, หมู่บ้านกลางเมืองรัตนาธิเบศร์,  
+เนื่องจากปรับปรุงอุปกรณ์หม้อแปลงไฟฟ้า.
+
+จุดที่สอง, ถนนเลี่ยงเมืองนนทบุรี  
+ตั้งแต่ซอยเลี่ยงเมืองนนทบุรี ซอย 10, หมู่บ้าน THE CONNECT,  
+เนื่องจากปรับปรุงอุปกรณ์หม้อแปลงไฟฟ้า.
+          </textarea>
+          <div class="mt-2 flex gap-2">
+            <button onclick="playAudio('Non','TH')" class="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700">ฟังเสียง</button>
+            <button class="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">แก้ไข</button>
+          </div>
+          <audio id="audio-Non-TH" src="Non_outage_TH.mp3"></audio>
+        </div>
+      </div>
+      <div>
+        <div class="mb-4">
+          <label for="province2-en" class="block font-semibold mb-2">NONTHABURI</label>
+          <textarea id="province2-en" rows="4" class="w-full p-2 border border-gray-300 rounded">Nonthaburi Area  
+On Wednesday, August 21, 2025, from 8:30 AM to 12:00 PM,  
+a temporary power outage will occur in the following locations:
+
+1. Liap Mueang Nonthaburi Road, Soi 10, Baan Klang Muang Rattanathibet  
+2. Liap Mueang Nonthaburi Road, Soi 10, THE CONNECT Village  
+          </textarea>
+          <div class="mt-2 flex gap-2">
+            <button onclick="playAudio('Non','EN')" class="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700">ฟังเสียง</button>
+            <button class="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">แก้ไข</button>
+          </div>
+          <audio id="audio-Non-EN" src="Non_outage_EN.mp3"></audio>
+        </div>
+      </div>
+      <div>
+        <div class="mb-4">
+          <label for="province3" class="block font-semibold mb-2">สมุทรปราการ</label>
+          <textarea id="province3" rows="5" class="w-full p-2 border border-gray-300 rounded">พื้นที่ จังหวัดสมุทรปราการ  
+ในวันศุกร์ที่ 16 สิงหาคม พุทธศักราช 2568,  
+ตั้งแต่เวลา 8 นาฬิกา ถึง 15 นาฬิกา 30 นาที,  
+จะมีการดับกระแสไฟฟ้าชั่วคราวในหลายจุด ดังนี้.  
+
+จุดที่หนึ่ง, ถนนแพรกษา  
+ซอยนิคมฯ แพรกษา
+
+จุดที่สอง, ริมถนนกิ่งแก้ว  
+บริเวณกิ่งแก้ว ซอย 3, ซอย 3/1 ถึง ซอย 5
+
+จุดที่สาม, ริมถนนกิ่งแก้ว  
+บริเวณหน้าบริษัทชื่นศิริ ถึงกิ่งแก้ว ซอย 7
+
+จุดที่สี่, ถนนกิ่งแก้ว  
+ซอยหน้าปั๊ม ปตท. กิ่งแก้ว ซอย 11/1
+          </textarea>
+          <div class="mt-2 flex gap-2">
+            <button onclick="playAudio('SM','TH')" class="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700">ฟังเสียง</button>
+            <button class="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">แก้ไข</button>
+          </div>
+          <audio id="audio-SM-TH" src="SM_outage_TH.mp3"></audio>
+        </div>
+      </div>
+      <div>
+        <div class="mb-4">
+          <label for="province3-en" class="block font-semibold mb-2">SAMUTPRAKAN</label>
+          <textarea id="province3-en" rows="4" class="w-full p-2 border border-gray-300 rounded">Samut Prakan Area  
+On Friday, August 16, 2025, from 8:00 AM to 3:30 PM,  
+a temporary power outage will occur in the following locations:
+
+1. Phraeksa Road, Soi Industrial Estate Phraeksa  
+2. King Kaew Roadside, Soi 3, Soi 3/1 to Soi 5  
+3. King Kaew Roadside, in front of Chuen Siri Co., to Soi 7  
+4. King Kaew Road, opposite PTT Station, Soi King Kaew 11/1
+          </textarea>
+          <div class="mt-2 flex gap-2">
+            <button onclick="playAudio('SM','EN')" class="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700">ฟังเสียง</button>
+            <button class="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">แก้ไข</button>
+          </div>
+          <audio id="audio-SM-EN" src="SM_outage_EN.mp3"></audio>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 text-center space-x-4">
+      <button class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">ส่งขออนุมัติ</button>
+      <button class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">ล้างค่า</button>
+    </div>
+  </div>
+  </section>
+  <script>
+    function playAudio(province, lang) {
+      const audioId = `audio-${province}-${lang}`;
+      const audio = document.getElementById(audioId);
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.play();
+      }
+    }
+  </script>
+</body>
+</html>
