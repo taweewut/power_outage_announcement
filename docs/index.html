@@ -1,0 +1,387 @@
+<html>
+<head>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <header class="bg-green-700 text-white py-4 shadow">
+    <div class="max-w-6xl mx-auto text-center px-4">
+      <h1 class="text-xl md:text-2xl font-bold">ระบบสร้างและแก้ไขไฟล์เสียง แผนดับไฟทำงาน</h1>
+      <p class="text-sm md:text-base">Planned Power Outage Audio Creation &amp; Management</p>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-2"></h1>
+    <p class="mb-4"></p>
+    <div id="content" class="mt-6">
+      <h2 class="text-xl font-semibold mb-4">Outage Announcement</h2>
+      <div class="flex flex-wrap items-center gap-4 mb-4">
+        <label class="flex items-center gap-2">
+          <span>จังหวัด:</span>
+          <select id="provinceSelect" class="border border-gray-300 rounded px-2 py-1"></select>
+        </label>
+        <label class="flex items-center gap-2">
+          <span>วันที่ดับไฟ:</span>
+          <select id="dateSelect" class="border border-gray-300 rounded px-2 py-1"></select>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="ttsMode" class="form-checkbox">
+          <span>TTS mode (full province)</span>
+        </label>
+        <button id="copyBtn" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">Copy text</button>
+        <span id="lastUpdated" class="text-sm text-gray-600">Last updated: —</span>
+        <button id="generateBtn" class="bg-emerald-600 text-white px-4 py-1 rounded hover:bg-emerald-700">Generate &amp; Play</button>
+        <span id="genStatus" class="text-sm text-gray-600"></span>
+        <span id="spinner" class="inline-flex items-center gap-2 text-gray-600 hidden">
+          <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+          <span>กำลังสร้างไฟล์เสียง…</span>
+        </span>
+        <div id="progress" class="hidden w-full max-w-md">
+          <div class="w-full bg-gray-200 rounded h-2 overflow-hidden">
+            <div id="progressBar" class="bg-emerald-600 h-2 w-0"></div>
+          </div>
+          <div id="progressLabel" class="text-xs text-gray-600 mt-1"></div>
+        </div>
+      </div>
+      <pre id="output" class="w-full border border-gray-300 rounded p-3 text-sm leading-7 h-60 overflow-auto whitespace-pre-wrap break-words font-sans" aria-label="ข้อความประกาศ" ></pre>
+      <div id="audioPanel" class="mt-4 space-y-2 hidden">
+        <audio id="audioPlayer" controls class="w-full"></audio>
+        <div id="playlist" class="text-sm text-gray-700 space-y-2"></div>
+        <div class="pt-1">
+          <button id="submitBtn" class="bg-indigo-600 text-white px-4 py-1 rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>Submit</button>
+        </div>
+      </div>
+    </div>
+  </main>
+<script>
+  const outageUrl = "https://storage.googleapis.com/mea-poweroutage-announcements/announcements/latest.json?_cb=" + Date.now();
+
+  // test with local FastAPI TTS service
+  // const TTS_ENDPOINT = "http://127.0.0.1:8000/tts"; // FastAPI TTS service
+
+  // Production to GCP Cloud Run TTS service
+  const TTS_ENDPOINT = "https://mea-tts-227260448211.asia-southeast1.run.app/tts";
+  
+  const $audioPanel = document.getElementById("audioPanel");
+  const $audio = document.getElementById("audioPlayer");
+  const $playlist = document.getElementById("playlist");
+  const $genBtn = document.getElementById("generateBtn");
+  const $genStatus = document.getElementById("genStatus");
+  const $submitBtn = document.getElementById('submitBtn');
+  const playStatus = {}; // dateIso -> 'pending' | 'playing' | 'done'
+
+  const $output = document.getElementById("output");
+  const $prov = document.getElementById("provinceSelect");
+  const $date = document.getElementById("dateSelect");
+  const $updated = document.getElementById("lastUpdated");
+  const $spinner = document.getElementById('spinner');
+  const $progress = document.getElementById('progress');
+  const $progressBar = document.getElementById('progressBar');
+  const $progressLabel = document.getElementById('progressLabel');
+  function setUpdated(ts){
+    if (!$updated) return;
+    try {
+      // Parse ISO string and format in Bangkok time for admins
+      const d = new Date(ts);
+      const s = d.toLocaleString('th-TH', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      $updated.textContent = `อัปเดตล่าสุด: ${s} `;
+    } catch (e) {
+      // Fallback to raw string
+      $updated.textContent = `อัปเดตล่าสุด: ${ts}`;
+    }
+  }
+
+  function show(msg){ if ($output) $output.textContent = msg; }
+
+  function pickProvinceLabel(p){
+    // Support both enriched and basic schemas
+    return p.province_en ? `${p.province_en} / ${p.province_th || p.province}` : (p.province_th || p.province || "");
+  }
+
+  function pickProvinceKey(p){
+    return p.province_code || p.province_en || p.province_th || p.province || "";
+  }
+
+  function pickProvinceCode(p){
+    return p.province_code || (p.province_en ? p.province_en.toUpperCase().slice(0,3) : pickProvinceKey(p));
+  }
+
+  function pickDateDisplay(d){
+    return d.date_display || d.date || d.date_iso || "";
+  }
+
+  function renderDates(data){
+    const provKey = $prov.value;
+    const prov = (data.announcements || []).find(p => pickProvinceKey(p) === provKey);
+    $date.innerHTML = "";
+    (prov?.announcements || []).forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.date_iso || d.date || d.date_display || "";
+      opt.textContent = pickDateDisplay(d);
+      $date.appendChild(opt);
+    });
+    renderOutages(data);
+  }
+
+  function buildTTSTextForProvince(prov){
+    const provinceName = prov.province_th || prov.province || prov.province_en || "";
+    let lines = [];
+    lines.push(`พื้นที่ ${provinceName}`);
+    lines.push(""); // blank line
+    (prov.announcements || []).forEach(day => {
+      const dateLine = day.date_display || day.date || day.date_iso || "";
+      if (dateLine) lines.push(" " + dateLine);
+      (day.outages || []).forEach((o, idx) => {
+        const time = o.time_display || o.time || (
+          (o.start_time && o.end_time) ? `เวลา ${o.start_time} น. ถึง ${o.end_time} น.` : ""
+        );
+        const loc = o.location || "";
+        lines.push(` จุดที่ ${idx+1}. ${loc}${time ? " " + time : ""}`);
+      });
+    });
+    return lines.join("\n");
+  }
+
+  function renderOutages(data){
+    const provKey = $prov.value;
+    const dateKey = $date.value;
+    const prov = (data.announcements || []).find(p => pickProvinceKey(p) === provKey);
+    window.__selectedProvince = prov || null;
+
+    if (!prov){ show("No province selected."); return; }
+
+    const ttsEnabled = document.getElementById("ttsMode").checked;
+    if (ttsEnabled){
+      show(buildTTSTextForProvince(prov));
+      window.__selectedDay = null;
+      return;
+    }
+
+    const day = (prov?.announcements || []).find(d => (d.date_iso || d.date || d.date_display || "") === dateKey);
+    window.__selectedDay = day || null;
+
+    if (!day){ show("No outages for selected date."); return; }
+    const lines = (day.outages || []).map(o => {
+      const loc = o.location || "";
+      const time = o.time_display || o.time || (o.start_time && o.end_time ? `${o.start_time}–${o.end_time}` : "");
+      return `• ${loc}${time ? " — " + time : ""}`;
+    });
+    show(lines.length ? lines.join("\n") : "No outages listed.");
+  }
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    try {
+      show("Fetching…");
+      const res = await fetch(outageUrl, { method: "GET" });
+      if (!res.ok) { show(`HTTP ${res.status} ${res.statusText}`); return; }
+      const data = await res.json();
+      if (data && data.fetched_at) setUpdated(data.fetched_at);
+      const provinces = data.announcements || [];
+      if (!provinces.length){ show("No announcements."); return; }
+      // populate provinces
+      $prov.innerHTML = "";
+      provinces.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = pickProvinceKey(p);
+        opt.textContent = pickProvinceLabel(p);
+        $prov.appendChild(opt);
+      });
+      // default to first province & its first date
+      renderDates(data);
+      $prov.addEventListener("change", () => renderDates(data));
+      $date.addEventListener("change", () => renderOutages(data));
+    } catch (err) {
+      console.error("❌ Failed to load outage data:", err);
+      show("Fetch error: " + (err?.message || String(err)));
+    }
+    // Add TTS toggle and copy button listeners
+    const $tts = document.getElementById("ttsMode");
+    const $copy = document.getElementById("copyBtn");
+    $tts.addEventListener("change", async () => {
+      // Re-render using current data set
+      const res = await fetch(outageUrl, { method: "GET" });
+      const data = await res.json();
+      renderOutages(data);
+    });
+    $copy.addEventListener("click", () => {
+      const text = $output.innerText || "";
+      navigator.clipboard.writeText(text).then(() => {
+        $copy.textContent = "Copied!";
+        setTimeout(() => $copy.textContent = "Copy text", 1200);
+      }).catch(() => {
+        alert("Copy failed — you can select and copy manually.");
+      });
+    });
+
+  async function callTTS(provinceCode, dateIso, opts = {}) {
+    const params = new URLSearchParams({ province_code: provinceCode, date_iso: dateIso });
+
+    if (opts.voice) params.set('voice', opts.voice);
+    if (opts.strict != null) params.set('strict', String(opts.strict));
+    if (opts.use_ssml != null) params.set('use_ssml', String(opts.use_ssml));
+
+    // cache-buster just in case a proxy caches GETs
+    params.set('_cb', Date.now().toString());
+
+    const url = `${TTS_ENDPOINT}?${params.toString()}`;
+    const res = await fetch(url, { method: 'GET' });
+
+    let bodyText = '';
+    try { bodyText = await res.text(); } catch (_) { /* ignore */ }
+
+    let js;
+    try { js = bodyText ? JSON.parse(bodyText) : null; } catch (_) { js = null; }
+
+    if (!res.ok) {
+      const detail = (js && (js.detail || js.message)) || bodyText || `HTTP ${res.status} ${res.statusText}`;
+      throw new Error(detail);
+    }
+
+  if (!js || !js.audio_url) {
+    throw new Error('TTS response missing audio_url');
+  }
+  return js;
+}
+
+  function showAudio(url, dateIso){
+    if (!$audioPanel || !$audio) return;
+    $audioPanel.classList.remove('hidden');
+    $audio.src = url;
+    if (dateIso) { $audio.dataset.currentDate = dateIso; }
+    $audio.play().catch(()=>{});
+  }
+
+  function showBusy(show){
+    if ($spinner) $spinner.classList.toggle('hidden', !show);
+    if ($progress) $progress.classList.toggle('hidden', !show);
+  }
+  function updateProgress(done, total){
+    if (!$progressBar || !$progressLabel) return;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    $progressBar.style.width = pct + '%';
+    $progressLabel.textContent = `เสร็จสิ้น ${done}/${total} ไฟล์ (${pct}%)`;
+  }
+
+  function updateSubmitEnabled(){
+    if (!$submitBtn) return;
+    // enable only if every generated item is done
+    const keys = Object.keys(playStatus);
+    if (keys.length === 0) { $submitBtn.disabled = true; return; }
+    const allDone = keys.every(k => playStatus[k] === 'done');
+    $submitBtn.disabled = !allDone;
+  }
+
+  function setItemIcon(dateIso, state){
+    playStatus[dateIso] = state;
+    const row = document.querySelector(`[data-date="${dateIso}"]`);
+    if (!row) { updateSubmitEnabled(); return; }
+    const icon = row.querySelector('.status-icon');
+    if (!icon) { updateSubmitEnabled(); return; }
+    if (state === 'done') icon.textContent = '✅';
+    else if (state === 'playing') icon.textContent = '▶';
+    else icon.textContent = '⌛';
+    updateSubmitEnabled();
+  }
+
+  function addPlaylistItem(dateIso, url){
+    if (!$playlist) return;
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2';
+    row.setAttribute('data-date', dateIso);
+
+    const icon = document.createElement('span');
+    icon.className = 'status-icon';
+    icon.textContent = '⌛'; // generating/pending
+
+    const btn = document.createElement('button');
+    btn.className = 'inline-block px-2 py-1 rounded bg-gray-100 hover:bg-gray-200';
+    btn.textContent = `${dateIso} ▶︎`;
+    btn.addEventListener('click', (e)=>{ e.preventDefault(); setItemIcon(dateIso, 'playing'); showAudio(url, dateIso); });
+
+    row.appendChild(icon);
+    row.appendChild(btn);
+    $playlist.appendChild(row);
+
+    setItemIcon(dateIso, 'pending');
+  }
+
+  async function generateAndPlay(){
+    if (!$genBtn) return;
+    try{
+      $genBtn.disabled = true; $genBtn.textContent = 'Generating...';
+      $genStatus.textContent = '';
+      $playlist.innerHTML = '';
+
+      showBusy(true);
+      $prov.disabled = true; $date.disabled = true; document.getElementById('ttsMode').disabled = true; $submitBtn.disabled = true;
+
+      const prov = window.__selectedProvince;
+      if (!prov){ throw new Error('Select a province first'); }
+      const provCode = pickProvinceCode(prov);
+      const ttsEnabled = document.getElementById('ttsMode').checked;
+
+      let total = 1, done = 0;
+
+      if (ttsEnabled){
+        // Full-province mode: generate for ALL dates found
+        const days = (prov.announcements || []).map(d => d.date_iso || d.date).filter(Boolean);
+        if (!days.length) throw new Error('No dates for this province');
+        total = days.length; updateProgress(0, total);
+        let firstUrl = null;
+        for (const d of days){
+          const js = await callTTS(provCode, d, { strict: 0, use_ssml: 0 });
+          addPlaylistItem(d, js.audio_url);
+          if (!firstUrl) firstUrl = js.audio_url;
+          done += 1; updateProgress(done, total);
+        }
+        if (firstUrl) showAudio(firstUrl, days[0]);
+        $genStatus.textContent = `Generated ${days.length} file(s).`;
+      } else {
+        // Single date mode
+        const day = window.__selectedDay; if (!day) throw new Error('Select a date');
+        const d = day.date_iso || day.date;
+        total = 1; updateProgress(0, total);
+        const js = await callTTS(provCode, d, { strict: 0, use_ssml: 1 });
+        addPlaylistItem(d, js.audio_url);
+        showAudio(js.audio_url, d);
+        done = 1; updateProgress(done, total);
+        $genStatus.textContent = 'Generated 1 file.';
+      }
+    } catch (e){
+      console.error('TTS error:', e);
+      $genStatus.textContent = `Error: ${e.message || e}`;
+      alert($genStatus.textContent);
+    } finally {
+      showBusy(false);
+      $prov.disabled = false; $date.disabled = false; document.getElementById('ttsMode').disabled = false;
+      $genBtn.disabled = false; $genBtn.textContent = 'Generate & Play';
+    }
+  }
+
+  if ($audio){
+    $audio.addEventListener('ended', () => {
+      const d = $audio.dataset.currentDate;
+      if (d) setItemIcon(d, 'done');
+    });
+    $audio.addEventListener('play', () => {
+      const d = $audio.dataset.currentDate;
+      if (d) setItemIcon(d, 'playing');
+    });
+  }
+
+  if ($genBtn){
+    $genBtn.addEventListener('click', generateAndPlay);
+  }
+  if ($submitBtn){
+    $submitBtn.addEventListener('click', () => {
+      // You can extend this later to actually POST to your backend.
+      alert('ระบบได้ ทำการส่งคำประกาศดับไฟแบบ  TTS เข้าสู่ระบบ IVR แล้ว');
+    });
+  }
+  });
+</script>
+</body>
+</html>
